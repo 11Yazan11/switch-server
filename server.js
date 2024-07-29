@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const WebSocket = require('ws');
-const favicon = require('serve-favicon');
 
 const app = express();
 const PORT = process.env.PORT || 3002; // Use environment variable for port or default to 3002
@@ -24,8 +23,7 @@ const logMessage = (message) => {
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Use serve-favicon middleware
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+
 
 // HTTP route to serve the current switch state
 app.get('/switch-state', (req, res) => {
