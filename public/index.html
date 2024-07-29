@@ -135,7 +135,7 @@
                 return;
             }
 
-            ws = new WebSocket(`ws://${window.location.hostname}:3002`);
+            ws = new WebSocket(`wss://${window.location.hostname}:3002`);
 
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);

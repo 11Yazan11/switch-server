@@ -5,8 +5,12 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = 3002;
 
+const favicon = require('serve-favicon');
+const path = require('path');
+
 let switchState = 'off'; // Initialize switch state in memory
 let serverLogs = []; // Store server logs in memory
+
 
 const logMessage = (message) => {
     const timestamp = new Date().toISOString();
@@ -20,6 +24,7 @@ const logMessage = (message) => {
 };
 
 app.use(express.static('public'));
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 
 // HTTP route to serve the current switch state
 app.get('/switch-state', (req, res) => {
