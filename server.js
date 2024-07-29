@@ -6,7 +6,6 @@ const app = express();
 const PORT = 3002;
 
 const favicon = require('serve-favicon');
-const path = require('path');
 
 let switchState = 'off'; // Initialize switch state in memory
 let serverLogs = []; // Store server logs in memory
