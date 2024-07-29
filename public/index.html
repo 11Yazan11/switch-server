@@ -38,7 +38,6 @@
 
         .slider {
             position: absolute;
-            align-items: center;
             cursor: pointer;
             top: 0;
             left: 0;
@@ -126,7 +125,7 @@
             fetch('/server-logs')
                 .then(response => response.json())
                 .then(logs => drawLogs(logs))
-                .catch(error => console.error('Error fetching logs:', error));
+                .catch(error => logMessage('Error fetching logs: ' + error));
         }
 
         function connectWebSocket() {
@@ -135,38 +134,40 @@
                 return;
             }
 
-            ws = new WebSocket(`ws://${window.location.hostname}`);
+            // Use the correct WebSocket scheme based on the current page protocol
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
+
+            ws = new WebSocket(wsUrl);
 
             ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+                logMessage('WebSocket error: ' + error.message);
             };
 
             ws.onopen = () => {
-                console.log('WebSocket connection established');
+                logMessage('WebSocket connection established');
                 isConnected = true;
                 // Fetch the initial switch state
                 fetch('/switch-state')
                     .then(response => response.text())
                     .then(state => {
                         switchElement.checked = (state === 'on');
-                        console.log(`Initial state: ${state}`);
+                        logMessage(`Initial state: ${state}`);
                     })
-                    .catch(error => console.error('Error fetching switch state:', error));
+                    .catch(error => logMessage('Error fetching switch state: ' + error));
 
                 fetchLogs();
             };
 
             ws.onmessage = (event) => {
-                console.log('Received message from server:', event.data);
+                logMessage('Received message from server: ' + event.data);
                 switchElement.checked = (event.data === 'on');
                 fetchLogs();
             };
 
             ws.onclose = () => {
-                console.log('WebSocket connection closed');
+                logMessage('WebSocket connection closed');
                 isConnected = false;
-    
-                //logMessage('Left the server');
             };
 
             // Send switch state to the server when toggled
@@ -175,7 +176,7 @@
 
         function sendStateToServer() {
             const state = switchElement.checked ? 'on' : 'off';
-            console.log('Sending state to server:', state);
+            logMessage('Sending state to server: ' + state);
             if (ws) {
                 ws.send(state);
             }
@@ -185,7 +186,7 @@
             if (ws && isConnected) {
                 ws.close();
                 isConnected = false;
-                logMessage(' Left the server');
+                logMessage('Left the server');
             } else {
                 alert('Not connected to the server.');
             }
@@ -194,7 +195,6 @@
         function logMessage(message) {
             const timestamp = new Date().toISOString();
             const logEntry = `${timestamp} - ${message}`;
-            console.log(logEntry);
             logContainer.innerHTML += `${logEntry}<br>`;
             logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
         }
