@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switch</title>
+    <style>
+        html {
+            background-color: #000000;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 300px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            align-items: center;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #b90505;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: rgb(0, 0, 0);
+            transition: .7s;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(266px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons button {
+            margin: 5px;
+        }
+
+        #logContainer {
+            margin-top: 20px;
+            width: 600px;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #fff;
+            color: #fff;
+            background-color: #000;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <label class="switch">
+        <input type="checkbox" id="switch">
+        <span class="slider round"></span>
+    </label>
+
+    <div class="buttons">
+        <button id="join-server">Join Server</button>
+        <button id="leave-server">Leave Server</button>
+    </div>
+
+    <div id="logContainer"></div>
+
+    <script>
+        const switchElement = document.getElementById('switch');
+        let ws;
+        let isConnected = false;
+
+        const logContainer = document.getElementById('logContainer');
+
+        function drawLogs(logs) {
+            logContainer.innerHTML = logs.join('<br>');
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
+        }
+
+        function fetchLogs() {
+            fetch('/server-logs')
+                .then(response => response.json())
+                .then(logs => drawLogs(logs))
+                .catch(error => console.error('Error fetching logs:', error));
+        }
+
+        function connectWebSocket() {
+            if (isConnected) {
+                alert('Already connected to the server.');
+                return;
+            }
+
+            ws = new WebSocket(`ws://${window.location.hostname}:3002`);
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onopen = () => {
+                console.log('WebSocket connection established');
+                isConnected = true;
+                // Fetch the initial switch state
+                fetch('/switch-state')
+                    .then(response => response.text())
+                    .then(state => {
+                        switchElement.checked = (state === 'on');
+                        console.log(`Initial state: ${state}`);
+                    })
+                    .catch(error => console.error('Error fetching switch state:', error));
+
+                fetchLogs();
+            };
+
+            ws.onmessage = (event) => {
+                console.log('Received message from server:', event.data);
+                switchElement.checked = (event.data === 'on');
+                fetchLogs();
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket connection closed');
+                isConnected = false;
+    
+                //logMessage('Left the server');
+            };
+
+            // Send switch state to the server when toggled
+            switchElement.addEventListener('change', sendStateToServer);
+        }
+
+        function sendStateToServer() {
+            const state = switchElement.checked ? 'on' : 'off';
+            console.log('Sending state to server:', state);
+            if (ws) {
+                ws.send(state);
+            }
+        }
+
+        function leaveWebSocket() {
+            if (ws && isConnected) {
+                ws.close();
+                isConnected = false;
+                logMessage(' Left the server');
+            } else {
+                alert('Not connected to the server.');
+            }
+        }
+
+        function logMessage(message) {
+            const timestamp = new Date().toISOString();
+            const logEntry = `${timestamp} - ${message}`;
+            console.log(logEntry);
+            logContainer.innerHTML += `${logEntry}<br>`;
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
+        }
+
+        document.getElementById('join-server').addEventListener('click', () => {
+            connectWebSocket();
+        });
+
+        document.getElementById('leave-server').addEventListener('click', () => {
+            leaveWebSocket();
+        });
+    </script>
+</body>
+</html>
